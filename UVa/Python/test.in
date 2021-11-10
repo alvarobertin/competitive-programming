@@ -1,0 +1,166 @@
+from sys import stdin
+import sys 
+sys.setrecursionlimit(10**6)
+from collections import deque
+from heapq import heappop, heappush
+
+MAX = 10000
+adj = [[] for i in range(MAX)]
+PrecioTiquete = [[] for i in range(MAX)]
+Iniciales = [[ [] for j in range(30) ] for i in range(30)]
+visitados = {}
+padre = {}
+
+
+def BFS(ruta):
+    global adj, PrecioTiquete, Iniciales, padre, visitados
+
+    visitados = {}
+    padre = {}
+    heap = []
+    inicial = ruta.popleft()
+
+    rutaTuple = tuple(ruta)
+    Estado = (0, inicial, -1, rutaTuple  )
+    heappush(heap, Estado)
+
+    visitados[ (inicial, -1, rutaTuple) ] = 1
+    padre[(inicial, -1, rutaTuple)] = (inicial, -1, rutaTuple)
+    # visitados[ Estado ] = 1
+    # padre[Estado] = Estado
+
+    while len(heap) != 0:
+        
+        Estadou = heappop(heap)
+        
+        preciou = Estadou[0]
+        u = Estadou[1]
+        tiqueteu = Estadou[2]
+        rutaTuple = Estadou[3]
+
+        rutau = deque(rutaTuple)
+        # print(Estadou)
+
+        if len(rutau) == 0:
+            return Estadou
+
+        for v, tiqv in adj[u]:
+            preciov = PrecioTiquete[tiqv]
+            rutav = deque()
+            rutav = deque(rutau)
+
+            if tiqueteu == tiqv:
+                # Caso 1
+                # Si u y v estan en el mismo tiquete, me muevo
+                if len(rutau) > 0:
+                    if rutau[0] == v: #  Si se cumple la ruta 
+                        rutav.popleft()
+
+                rutaTuple = tuple(rutav)
+                Estadov = (preciou, v, tiqueteu, rutaTuple)
+
+
+                if visitados.get( ( v, tiqueteu, rutaTuple) ) != 1:
+                    visitados[ ( v, tiqueteu, rutaTuple) ] = 1
+                    padre[ ( v, tiqueteu, rutaTuple) ] = ( u, tiqueteu, rutaTuple)
+                    # visitados[Estadov] = 1
+                    # padre[Estadov] = Estadou
+                    heappush(heap, Estadov)
+
+            elif Iniciales[u][tiqv] == 1:
+                # Caso 2
+                # Si u y v no estan en el mismo tiquete, y v es una ciudad inicial en su tiquete
+                if len(rutau) > 0:
+                    if rutau[0] == v: #  Si se cumple la ruta 
+
+                        rutav.popleft()
+                
+                rutaTuple = tuple(rutav)
+                Estadov = (preciou + preciov, v, tiqv, rutaTuple)
+
+                if visitados.get((v, tiqv, rutaTuple)) != 1:
+                    visitados[(v, tiqv, rutaTuple)] = 1
+                    padre[( v, tiqv, rutaTuple)] = ( u, tiqueteu, rutaTuple)
+                    # visitados[Estadov] = 1
+                    # padre[Estadov] = Estadou
+                    heappush(heap, Estadov)
+
+def main():
+    l = 0
+    lines = stdin.readlines()
+    cases = 0
+    global adj, PrecioTiquete, Iniciales, padre, visitados
+    while l < len(lines) - 1:
+        ciudades = {}
+        cases += 1
+        adj = [[] for i in range(MAX)]
+
+        nT = int(lines[l].strip())
+        l += 1
+        nciudades = 0
+        for nTiquete in range(nT):
+            tiquete = lines[l].strip().split()
+            l += 1
+            precio = int(tiquete[0])
+            
+            u = int(tiquete[2]) 
+            if u not in ciudades:
+                ciudades[u] = nciudades
+                nciudades += 1
+
+            Iniciales[ciudades[u]][nTiquete] = 1
+            PrecioTiquete[nTiquete] = precio 
+            
+            i = 3
+            while i < len(tiquete):
+                v = int(tiquete[i])
+                if v not in ciudades:
+                    ciudades[v] = nciudades
+                    nciudades += 1
+                adj[ciudades[u]].append( (ciudades[v], nTiquete) )
+                u = v
+                i += 1
+
+        nQ = int(lines[l].strip())
+        l += 1
+        
+        for nquery in range(nQ):
+            query = lines[l].strip().split()
+            l += 1
+            ruta = deque()
+
+            i = 1
+            while i < len(query):
+                ruta.append(ciudades[int(query[i])])
+                i += 1
+                
+            ans = ()
+            ans = BFS(ruta)
+
+            if(ans != None):
+                route = []
+                node = ans[1:]
+
+                if(node in padre):
+                    while( padre [node] != node) : 
+                        route.append(node)
+                        if(node not in padre):
+                            break
+                        node = padre[node]
+                route.append(node)
+            
+                print("Case {}, Trip {}: Cost = {}".format(cases, nquery + 1, ans[0]))
+                print("  Tickets used:", end = "")
+
+                anterior = -1
+                j = len(route) - 1
+                while j >= 0:
+                    if anterior != route[j][2]:
+                        print(" {}".format(route[j][2] + 1), end="" )
+                        anterior = route[j][2]
+                    j -= 1
+                print()
+            else:
+                print("NO")
+
+main()
